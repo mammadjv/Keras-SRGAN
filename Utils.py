@@ -8,13 +8,14 @@
 
 from keras.layers import Lambda
 import tensorflow as tf
-from skimage import data, io, filters
+#from skimage import data, io, filters
+import imageio
 import numpy as np
 from numpy import array
 from numpy.random import randint
-from scipy.misc import imresize
 import os
 import sys
+import cv2
 
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
@@ -32,16 +33,21 @@ def SubpixelConv2D(input_shape, scale=4):
     return Lambda(subpixel, output_shape=subpixel_shape)
     
 # Takes list of images and provide HR images in form of numpy array
-def hr_images(images):
-    images_hr = array(images)
-    return images_hr
+def get_hr_images(images):
+    hr_images = []
+    for img in  range(len(images)):
+        hr_images.append(cv2.resize(images[img], (192, 256)))
+
+    hr_images = array(hr_images)
+    return hr_images
 
 # Takes list of images and provide LR images in form of numpy array
-def lr_images(images_real , downscale):
+def get_lr_images(images_real , downscale):
     
     images = []
     for img in  range(len(images_real)):
-        images.append(imresize(images_real[img], [images_real[img].shape[0]//downscale,images_real[img].shape[1]//downscale], interp='bicubic', mode=None))
+        images.append(images_real[img])
+
     images_lr = array(images)
     return images_lr
     
@@ -71,11 +77,12 @@ def load_data_from_dirs(dirs, ext):
     for d in dirs:
         for f in os.listdir(d): 
             if f.endswith(ext):
-                image = data.imread(os.path.join(d,f))
+                image = cv2.imread(os.path.join(d,f))
                 if len(image.shape) > 2:
                     files.append(image)
                     file_names.append(os.path.join(d,f))
                 count = count + 1
+
     return files     
 
 def load_data(directory, ext):
@@ -86,34 +93,32 @@ def load_data(directory, ext):
 def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio = 0.8):
 
     number_of_train_images = int(number_of_images * train_test_ratio)
+    hr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
+    lr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
     
-    files = load_data_from_dirs(load_path(directory), ext)
-    
-    if len(files) < number_of_images:
+    if len(hr_images) < number_of_images:
         print("Number of image files are less then you specified")
-        print("Please reduce number of images to %d" % len(files))
+        print("Please reduce number of images to %d" % len(hr_images))
         sys.exit()
         
-    test_array = array(files)
+    test_array = array(hr_images)
     if len(test_array.shape) < 3:
         print("Images are of not same shape")
         print("Please provide same shape images")
         sys.exit()
-    
-    x_train = files[:number_of_train_images]
-    x_test = files[number_of_train_images:number_of_images]
-    
-    x_train_hr = hr_images(x_train)
-    x_train_hr = normalize(x_train_hr)
-    
-    x_train_lr = lr_images(x_train, 4)
-    x_train_lr = normalize(x_train_lr)
-    
-    x_test_hr = hr_images(x_test)
-    x_test_hr = normalize(x_test_hr)
-    
-    x_test_lr = lr_images(x_test, 4)
-    x_test_lr = normalize(x_test_lr)
+
+
+    hr_images = get_hr_images(hr_images)
+    hr_images = normalize(hr_images)
+
+    lr_images = get_lr_images(lr_images, 1)
+    lr_images = normalize(lr_images)
+
+    x_train_hr = hr_images[:number_of_train_images]
+    x_train_lr = lr_images[:number_of_train_images]
+
+    x_test_hr = hr_images[number_of_train_images:number_of_images]
+    x_test_lr = lr_images[number_of_train_images:number_of_images]
     
     return x_train_lr, x_train_hr, x_test_lr, x_test_hr
 
@@ -121,6 +126,7 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
 def load_test_data_for_model(directory, ext, number_of_images = 100):
 
     files = load_data_from_dirs(load_path(directory), ext)
+    print(len(files), number_of_images)
     
     if len(files) < number_of_images:
         print("Number of image files are less then you specified")
@@ -130,7 +136,7 @@ def load_test_data_for_model(directory, ext, number_of_images = 100):
     x_test_hr = hr_images(files)
     x_test_hr = normalize(x_test_hr)
     
-    x_test_lr = lr_images(files, 4)
+    x_test_lr = lr_images(files, 2)
     x_test_lr = normalize(x_test_lr)
     
     return x_test_lr, x_test_hr
@@ -138,7 +144,6 @@ def load_test_data_for_model(directory, ext, number_of_images = 100):
 def load_test_data(directory, ext, number_of_images = 100):
 
     files = load_data_from_dirs(load_path(directory), ext)
-    
     if len(files) < number_of_images:
         print("Number of image files are less then you specified")
         print("Please reduce number of images to %d" % len(files))
