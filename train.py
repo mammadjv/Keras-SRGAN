@@ -12,15 +12,18 @@ from Utils_model import VGG_LOSS
 
 from keras.models import Model
 from keras.layers import Input
+import tensorflow as tf
+
 from tqdm import tqdm
 import numpy as np
 import argparse
+import sys
 
 np.random.seed(10)
 # Better to use downscale factor as 4
-downscale_factor = 4
+downscale_factor = 24
 # Remember to change image shape if you are having different size of images
-image_shape = (384,384,3)
+image_shape = (256, 192, 3)
 
 # Combined network
 def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
@@ -31,7 +34,7 @@ def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
     gan = Model(inputs=gan_input, outputs=[x,gan_output])
     gan.compile(loss=[vgg_loss, "binary_crossentropy"],
                 loss_weights=[1., 1e-3],
-                optimizer=optimizer)
+                optimizer=optimizer, run_eagerly=True)
 
     return gan
 
@@ -43,17 +46,15 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
     loss = VGG_LOSS(image_shape)  
     
     batch_count = int(x_train_hr.shape[0] / batch_size)
-    shape = (image_shape[0]//downscale_factor, image_shape[1]//downscale_factor, image_shape[2])
-    
+    shape = (image_shape[0]//16, image_shape[1]//12, image_shape[2])
     generator = Generator(shape).generator()
     discriminator = Discriminator(image_shape).discriminator()
 
     optimizer = Utils_model.get_optimizer()
-    generator.compile(loss=loss.vgg_loss, optimizer=optimizer)
-    discriminator.compile(loss="binary_crossentropy", optimizer=optimizer)
-    
+    generator.compile(loss=loss.vgg_loss, optimizer=optimizer, run_eagerly=True)
+    discriminator.compile(loss="binary_crossentropy", optimizer=optimizer, run_eagerly=True)
+     
     gan = get_gan_network(discriminator, shape, generator, optimizer, loss.vgg_loss)
-    
     loss_file = open(model_save_dir + 'losses.txt' , 'w+')
     loss_file.close()
 
@@ -84,7 +85,7 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
             discriminator.trainable = False
             gan_loss = gan.train_on_batch(image_batch_lr, [image_batch_hr,gan_Y])
             
-            
+        
         print("discriminator_loss : %f" % discriminator_loss)
         print("gan_loss :", gan_loss)
         gan_loss = str(gan_loss)
@@ -113,13 +114,13 @@ if __name__== "__main__":
     parser.add_argument('-m', '--model_save_dir', action='store', dest='model_save_dir', default='./model/' ,
                     help='Path for model')
 
-    parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=64,
+    parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=4,
                     help='Batch Size', type=int)
                     
-    parser.add_argument('-e', '--epochs', action='store', dest='epochs', default=1000 ,
+    parser.add_argument('-e', '--epochs', action='store', dest='epochs', default=50 ,
                     help='number of iteratios for trainig', type=int)
                     
-    parser.add_argument('-n', '--number_of_images', action='store', dest='number_of_images', default=1000 ,
+    parser.add_argument('-n', '--number_of_images', action='store', dest='number_of_images', default=450 ,
                     help='Number of Images', type= int)
                     
     parser.add_argument('-r', '--train_test_ratio', action='store', dest='train_test_ratio', default=0.8 ,
