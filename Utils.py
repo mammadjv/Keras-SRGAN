@@ -36,7 +36,7 @@ def SubpixelConv2D(input_shape, scale=4):
 def get_hr_images(images):
     hr_images = []
     for img in  range(len(images)):
-        hr_images.append(cv2.resize(images[img], (192, 256)))
+        hr_images.append(cv2.resize(images[img], (128, 128)))
 
     hr_images = array(hr_images)
     return hr_images
@@ -53,10 +53,10 @@ def get_lr_images(images_real , downscale):
     
 def normalize(input_data):
 
-    return (input_data.astype(np.float32) - 127.5)/127.5 
+    return (input_data.astype(np.float32)-127.5)/127.5 
     
 def denormalize(input_data):
-    input_data = (input_data + 1) * 127.5
+    input_data = (input_data+1) * 127.5
     return input_data.astype(np.uint8)
    
  
@@ -75,8 +75,11 @@ def load_data_from_dirs(dirs, ext):
     file_names = []
     count = 0
     for d in dirs:
-        for f in os.listdir(d): 
+#        print('@@@@')
+        for f in os.listdir(d):
+#            print('####')
             if f.endswith(ext):
+                print(f)
                 image = cv2.imread(os.path.join(d,f))
                 if len(image.shape) > 2:
                     files.append(image)
@@ -93,6 +96,7 @@ def load_data(directory, ext):
 def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio = 0.8):
 
     number_of_train_images = int(number_of_images * train_test_ratio)
+    print('************************')
     hr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
     lr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
     
