@@ -11,7 +11,7 @@ import Utils_model, Utils
 from Utils_model import VGG_LOSS
 
 from keras.models import Model
-from keras.layers import Input
+from keras.layers import Input, Concatenate
 import tensorflow as tf
 
 from tqdm import tqdm
@@ -21,15 +21,17 @@ import sys
 
 np.random.seed(10)
 # Better to use downscale factor as 4
-downscale_factor = 24
+downscale_factor = 4
 # Remember to change image shape if you are having different size of images
-image_shape = (256, 192, 3)
+image_shape = (128, 128, 3)
 
 # Combined network
 def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
     discriminator.trainable = False
     gan_input = Input(shape=shape)
     x = generator(gan_input)
+    x = Concatenate(axis=3)([x, x, x])
+#    print(x.shape)
     gan_output = discriminator(x)
     gan = Model(inputs=gan_input, outputs=[x,gan_output])
     gan.compile(loss=[vgg_loss, "binary_crossentropy"],
@@ -43,10 +45,10 @@ def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
 def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_images, train_test_ratio):
     
     x_train_lr, x_train_hr, x_test_lr, x_test_hr = Utils.load_training_data(input_dir, '.png', number_of_images, train_test_ratio) 
-    loss = VGG_LOSS(image_shape)  
+    loss = VGG_LOSS(image_shape)
     
     batch_count = int(x_train_hr.shape[0] / batch_size)
-    shape = (image_shape[0]//16, image_shape[1]//12, image_shape[2])
+    shape = (image_shape[0]//downscale_factor, image_shape[1]//downscale_factor, 3)
     generator = Generator(shape).generator()
     discriminator = Discriminator(image_shape).discriminator()
 
@@ -67,6 +69,7 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
             image_batch_hr = x_train_hr[rand_nums]
             image_batch_lr = x_train_lr[rand_nums]
             generated_images_sr = generator.predict(image_batch_lr)
+            generated_images_sr = Concatenate(axis=3)([generated_images_sr, generated_images_sr, generated_images_sr])
 
             real_data_Y = np.ones(batch_size) - np.random.random_sample(batch_size)*0.2
             fake_data_Y = np.random.random_sample(batch_size)*0.2
@@ -94,9 +97,9 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
         loss_file.write('epoch%d : gan_loss = %s ; discriminator_loss = %f\n' %(e, gan_loss, discriminator_loss) )
         loss_file.close()
 
-        if e == 1 or e % 5 == 0:
+        if e == 1 or e % 10 == 0:
             Utils.plot_generated_images(output_dir, e, generator, x_test_hr, x_test_lr)
-        if e % 500 == 0:
+        if e % 10 == 0:
             generator.save(model_save_dir + 'gen_model%d.h5' % e)
             discriminator.save(model_save_dir + 'dis_model%d.h5' % e)
 
@@ -114,10 +117,10 @@ if __name__== "__main__":
     parser.add_argument('-m', '--model_save_dir', action='store', dest='model_save_dir', default='./model/' ,
                     help='Path for model')
 
-    parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=4,
+    parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=8,
                     help='Batch Size', type=int)
                     
-    parser.add_argument('-e', '--epochs', action='store', dest='epochs', default=50 ,
+    parser.add_argument('-e', '--epochs', action='store', dest='epochs', default=1000 ,
                     help='number of iteratios for trainig', type=int)
                     
     parser.add_argument('-n', '--number_of_images', action='store', dest='number_of_images', default=450 ,

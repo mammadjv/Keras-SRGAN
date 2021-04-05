@@ -21,6 +21,7 @@ class VGG_LOSS(object):
     def vgg_loss(self, y_true, y_pred):
     
         vgg19 = VGG19(include_top=False, weights='imagenet', input_shape=self.image_shape)
+        print(self.image_shape, '     ))))))))))))')
         vgg19.trainable = False
         # Make trainable as False
         for l in vgg19.layers:

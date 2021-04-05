@@ -6,7 +6,7 @@
 #usage           :imported in other files
 #python_version  :3.5.4
 
-from keras.layers import Lambda
+from keras.layers import Lambda, Concatenate
 import tensorflow as tf
 #from skimage import data, io, filters
 import imageio
@@ -46,7 +46,7 @@ def get_lr_images(images_real , downscale):
     
     images = []
     for img in  range(len(images_real)):
-        images.append(images_real[img])
+        images.append(cv2.resize(images_real[img], (32, 32)))
 
     images_lr = array(images)
     return images_lr
@@ -98,8 +98,7 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
     number_of_train_images = int(number_of_images * train_test_ratio)
     print('************************')
     hr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
-    lr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
-    
+
     if len(hr_images) < number_of_images:
         print("Number of image files are less then you specified")
         print("Please reduce number of images to %d" % len(hr_images))
@@ -113,9 +112,9 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
 
 
     hr_images = get_hr_images(hr_images)
-    hr_images = normalize(hr_images)
+    lr_images = get_lr_images(hr_images, 4)
 
-    lr_images = get_lr_images(lr_images, 1)
+    hr_images = normalize(hr_images)
     lr_images = normalize(lr_images)
 
     x_train_hr = hr_images[:number_of_train_images]
@@ -137,10 +136,10 @@ def load_test_data_for_model(directory, ext, number_of_images = 100):
         print("Please reduce number of images to %d" % len(files))
         sys.exit()
         
-    x_test_hr = hr_images(files)
+    x_test_hr = hr_images(files) 
+    x_test_lr = lr_images(files, 4)
+
     x_test_hr = normalize(x_test_hr)
-    
-    x_test_lr = lr_images(files, 2)
     x_test_lr = normalize(x_test_lr)
     
     return x_test_lr, x_test_hr
@@ -170,17 +169,19 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
     gen_img = generator.predict(image_batch_lr)
     generated_image = denormalize(gen_img)
     image_batch_lr = denormalize(image_batch_lr)
-    
+
+    final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
+
     plt.figure(figsize=figsize)
-    
+
     plt.subplot(dim[0], dim[1], 1)
     plt.imshow(image_batch_lr[value], interpolation='nearest')
     plt.axis('off')
-        
+
     plt.subplot(dim[0], dim[1], 2)
-    plt.imshow(generated_image[value], interpolation='nearest')
+    plt.imshow(final_output, interpolation='nearest')
     plt.axis('off')
-    
+
     plt.subplot(dim[0], dim[1], 3)
     plt.imshow(image_batch_hr[value], interpolation='nearest')
     plt.axis('off')

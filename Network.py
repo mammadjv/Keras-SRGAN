@@ -81,9 +81,9 @@ class Generator(object):
         for index in range(2):
             model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=2, upsampling_size_y=2)
 
-        model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=4, upsampling_size_y=3)
+       # model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=4, upsampling_size_y=3)
 
-        model = Conv2D(filters = 3, kernel_size = 9, strides = 1, padding = "same")(model)
+        model = Conv2D(filters = 1, kernel_size = 9, strides = 1, padding = "same")(model)
         model = Activation('tanh')(model)
         generator_model = Model(inputs = gen_input, outputs = model)
         print(generator_model.summary())
