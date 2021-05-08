@@ -46,15 +46,6 @@ You can find more about this implementation in my post : [Single Image Super Res
     matplotlib, skimage, scipy
     
     For training: Good GPU, I trained my model on NVIDIA Tesla P100
-    
-## Data set:
-
-    * Used COCO data set 2017. It is around 18GB having images of different dimensions.
-    * Used 800 images for training(Very less, You can take more (approx. 350 according to original paper) thousand is you can
-      collect and have very very good GPU). Preprocessing includes cropping images so that we can have same dimension images. 
-      Images with same width and height are preferred. I used images of size 384 for high resolution.
-    * After above step you have High Resolution images. Now you have to get Low Resolution images which you can get by down 
-      scaling HR images. I used down scale = 4. So Low resolution image of size 96 we will get. Sample code for this.
       
 ## File Structure:
 
@@ -95,23 +86,6 @@ You can find more about this implementation in my post : [Single Image Super Res
      If you hate commandline arguements please reffer Simplified folder. Modify parameters in file like image_shape, input folder
      etc. according to your need and start training.
                
-## Things's Learned:
-
-    * GAN's sometimes are hard to train. Network can be very deep sometimes, but use of residual blocks make it easier.
-    * Once you get to learn about Perceptual loss things get easier. Same Perceptual loss can be usefull for Image Style Transfer and Photo Realistic Style Transfer.
-    * This is one of the problem where i struggled to get data. You need to be carefull while choosing data and also preprossing is little bit tough.
-    * Better to use images with same width and height.
-    * Use GPU for training else it will take months to train(even you can run out of memory).
-    
-## Output:
-
-Below are few results-
-![Output 1](./output/gan_generated_image_epoch_1110.png)
-![Output 2](./output/gan_generated_image_epoch_2580.png)
-![Output 2](./output/gan_generated_image_epoch_770.png)
-    
-More results are in output folder
-
 ## Refrences:
 
     Paper:
