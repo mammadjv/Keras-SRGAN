@@ -36,7 +36,7 @@ def SubpixelConv2D(input_shape, scale=4):
 def get_hr_images(images):
     hr_images = []
     for img in  range(len(images)):
-        hr_images.append(cv2.resize(images[img], (128, 128)))
+        hr_images.append(images[img])
 
     hr_images = array(hr_images)
     return hr_images
@@ -46,7 +46,7 @@ def get_lr_images(images_real , downscale):
     
     images = []
     for img in  range(len(images_real)):
-        images.append(cv2.resize(images_real[img], (32, 32)))
+        images.append(cv2.resize(images_real[img], (176, 208), interpolation=cv2.INTER_NEAREST))
 
     images_lr = array(images)
     return images_lr
@@ -98,21 +98,32 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
     number_of_train_images = int(number_of_images * train_test_ratio)
     print('************************')
     hr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
+    lr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
 
     if len(hr_images) < number_of_images:
         print("Number of image files are less then you specified")
         print("Please reduce number of images to %d" % len(hr_images))
         sys.exit()
+
+    if len(lr_images) < number_of_images:
+        print("Number of image files are less then you specified")
+        print("Please reduce number of images to %d" % len(lr_images))
+        sys.exit()
         
     test_array = array(hr_images)
     if len(test_array.shape) < 3:
-        print("Images are of not same shape")
+        print("hrImages are of not same shape")
         print("Please provide same shape images")
         sys.exit()
 
+    #test_array = array(lr_images)
+    #if len(test_array.shape) < 3:
+        #print("lrImages are of not same shape")
+        #print("Please provide same shape images")
+        #sys.exit()
 
     hr_images = get_hr_images(hr_images)
-    lr_images = get_lr_images(hr_images, 4)
+    lr_images = get_lr_images(lr_images, 1)
 
     hr_images = normalize(hr_images)
     lr_images = normalize(lr_images)
@@ -242,7 +253,6 @@ def plot_test_generated_images(output_dir, generator, x_test_lr, figsize=(5, 5))
         plt.savefig(output_dir + 'high_res_result_image_%d.png' % index)
     
         #plt.show()
-
 
 
 
