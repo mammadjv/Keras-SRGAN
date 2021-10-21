@@ -16,9 +16,14 @@ from numpy.random import randint
 import os
 import sys
 import cv2
+import json
 
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
+
+
+global hr_test_filenames, lr_test_filenames;
+
 
 # Subpixel Conv will upsample from (h, w, c) to (h/r, w/r, c/r^2)
 def SubpixelConv2D(input_shape, scale=4):
@@ -71,22 +76,24 @@ def load_path(path):
     return directories
     
 def load_data_from_dirs(dirs, ext):
-    files = []
-    file_names = []
-    count = 0
+    train_images, test_images = [], []
+    test_filenames = []
+    split_file = open('splits.json')
+    split = json.load(split_file)
     for d in dirs:
-#        print('@@@@')
         for f in os.listdir(d):
-#            print('####')
             if f.endswith(ext):
-                print(f)
-                image = cv2.imread(os.path.join(d,f))
+                path = os.path.join(d,f)
+                image = cv2.imread(path)
                 if len(image.shape) > 2:
-                    files.append(image)
-                    file_names.append(os.path.join(d,f))
-                count = count + 1
+                    if f in split['train']:
+                        train_images.append(image)
 
-    return files     
+                    else:
+                        test_images.append(image)
+                        test_filenames.append(f)
+
+    return train_images, test_images, test_filenames
 
 def load_data(directory, ext):
 
@@ -94,45 +101,34 @@ def load_data(directory, ext):
     return files
     
 def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio = 0.8):
+    global hr_test_filenames, lr_test_filenames;
 
     number_of_train_images = int(number_of_images * train_test_ratio)
-    print('************************')
-    hr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
-    lr_images = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
+    hr_train, hr_test, hr_test_filenames = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
+    lr_train, lr_test, lr_test_filenames = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
 
-    if len(hr_images) < number_of_images:
+    if len(hr_train) < number_of_images:
         print("Number of image files are less then you specified")
         print("Please reduce number of images to %d" % len(hr_images))
         sys.exit()
 
-    if len(lr_images) < number_of_images:
+    if len(lr_train) < number_of_images:
         print("Number of image files are less then you specified")
         print("Please reduce number of images to %d" % len(lr_images))
         sys.exit()
-        
-    test_array = array(hr_images)
-    if len(test_array.shape) < 3:
-        print("hrImages are of not same shape")
-        print("Please provide same shape images")
-        sys.exit()
 
-    #test_array = array(lr_images)
-    #if len(test_array.shape) < 3:
-        #print("lrImages are of not same shape")
-        #print("Please provide same shape images")
-        #sys.exit()
 
-    hr_images = get_hr_images(hr_images)
-    lr_images = get_lr_images(lr_images, 1)
+    hr_train = get_hr_images(hr_train)
+    lr_train = get_lr_images(lr_train, 1)
 
-    hr_images = normalize(hr_images)
-    lr_images = normalize(lr_images)
+    x_train_hr = normalize(hr_train)
+    x_train_lr = normalize(lr_train)
 
-    x_train_hr = hr_images[:number_of_train_images]
-    x_train_lr = lr_images[:number_of_train_images]
+    hr_test = get_hr_images(hr_test)
+    lr_test = get_lr_images(lr_test, 1)
 
-    x_test_hr = hr_images[number_of_train_images:number_of_images]
-    x_test_lr = lr_images[number_of_train_images:number_of_images]
+    x_test_hr = normalize(hr_test)
+    x_test_lr = normalize(lr_test)
     
     return x_train_lr, x_train_hr, x_test_lr, x_test_hr
 
@@ -171,9 +167,9 @@ def load_test_data(directory, ext, number_of_images = 100):
 # While training save generated image(in form LR, SR, HR)
 # Save only one image as sample  
 def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , dim=(1, 3), figsize=(15, 5)):
-    
+    global hr_test_filenames, lr_test_filenames;
+
     examples = x_test_hr.shape[0]
-    print(examples)
     value = randint(0, examples)
     image_batch_hr = denormalize(x_test_hr)
     image_batch_lr = x_test_lr
@@ -181,26 +177,28 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
     generated_image = denormalize(gen_img)
     image_batch_lr = denormalize(image_batch_lr)
 
-    final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
+    for value in range(examples):
+        final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
 
-    plt.figure(figsize=figsize)
+        plt.figure(figsize=figsize)
 
-    plt.subplot(dim[0], dim[1], 1)
-    plt.imshow(image_batch_lr[value], interpolation='nearest')
-    plt.axis('off')
+        plt.subplot(dim[0], dim[1], 1)
+        plt.imshow(image_batch_lr[value], interpolation='nearest')
+        plt.axis('off')
 
-    plt.subplot(dim[0], dim[1], 2)
-    plt.imshow(final_output, interpolation='nearest')
-    plt.axis('off')
+        plt.subplot(dim[0], dim[1], 2)
+        plt.imshow(final_output, interpolation='nearest')
+        plt.axis('off')
 
-    plt.subplot(dim[0], dim[1], 3)
-    plt.imshow(image_batch_hr[value], interpolation='nearest')
-    plt.axis('off')
+        plt.subplot(dim[0], dim[1], 3)
+        plt.imshow(image_batch_hr[value], interpolation='nearest')
+        plt.axis('off')
     
-    plt.tight_layout()
-    plt.savefig(output_dir + 'generated_image_%d.png' % epoch)
-    
-    #plt.show()
+        plt.tight_layout()
+        plt.savefig(output_dir + '{}_{}.png'.format(hr_test_filenames[value][:-4], epoch))
+        plt.clf()
+        plt.close()
+
     
 # Plots and save generated images(in form LR, SR, HR) from model to test the model 
 # Save output for all images given for testing  
@@ -231,6 +229,9 @@ def plot_test_generated_images_for_model(output_dir, generator, x_test_hr, x_tes
     
         plt.tight_layout()
         plt.savefig(output_dir + 'test_generated_image_%d.png' % index)
+        plt.clf()
+        plt.close()
+        
     
         #plt.show()
 
