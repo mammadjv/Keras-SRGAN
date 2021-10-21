@@ -78,8 +78,9 @@ class Generator(object):
         model = add([gen_model, model])
 	    
 	# Using 2 UpSampling Block
-        for index in range(2):
-            model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=2, upsampling_size_y=2)
+#        for index in range(8):
+#            print('@@@@@@@@@@')
+#            model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=2, upsampling_size_y=2)
 
        # model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=4, upsampling_size_y=3)
 
