@@ -5,6 +5,7 @@
 #date            :2018/10/30
 #usage           :python train.py --options
 #python_version  :3.5.4 
+#Comment Update
 
 from Network import Generator, Discriminator
 import Utils_model, Utils
@@ -21,9 +22,9 @@ import sys
 
 np.random.seed(10)
 # Better to use downscale factor as 4
-downscale_factor = 4
+downscale_factor = 1
 # Remember to change image shape if you are having different size of images
-image_shape = (128, 128, 3)
+image_shape = (208, 176, 3)
 
 # Combined network
 def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
@@ -31,7 +32,7 @@ def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
     gan_input = Input(shape=shape)
     x = generator(gan_input)
     x = Concatenate(axis=3)([x, x, x])
-#    print(x.shape)
+
     gan_output = discriminator(x)
     gan = Model(inputs=gan_input, outputs=[x,gan_output])
     gan.compile(loss=[vgg_loss, "binary_crossentropy"],
@@ -99,7 +100,8 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
 
         if e == 1 or e % 10 == 0:
             Utils.plot_generated_images(output_dir, e, generator, x_test_hr, x_test_lr)
-        if e % 10 == 0:
+
+        if e % 50 == 0:
             generator.save(model_save_dir + 'gen_model%d.h5' % e)
             discriminator.save(model_save_dir + 'dis_model%d.h5' % e)
 
@@ -108,7 +110,7 @@ if __name__== "__main__":
 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('-i', '--input_dir', action='store', dest='input_dir', default='./data/' ,
+    parser.add_argument('-i', '--input_dir', action='store', dest='input_dir', default='./data_synthetic/' ,
                     help='Path for input images')
                     
     parser.add_argument('-o', '--output_dir', action='store', dest='output_dir', default='./output/' ,
@@ -120,7 +122,7 @@ if __name__== "__main__":
     parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=8,
                     help='Batch Size', type=int)
                     
-    parser.add_argument('-e', '--epochs', action='store', dest='epochs', default=1000 ,
+    parser.add_argument('-e', '--epochs', action='store', dest='epochs', default=4000 ,
                     help='number of iteratios for trainig', type=int)
                     
     parser.add_argument('-n', '--number_of_images', action='store', dest='number_of_images', default=450 ,
@@ -132,5 +134,3 @@ if __name__== "__main__":
     values = parser.parse_args()
     
     train(values.epochs, values.batch_size, values.input_dir, values.output_dir, values.model_save_dir, values.number_of_images, values.train_test_ratio)
-
-
