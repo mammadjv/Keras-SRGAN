@@ -41,11 +41,47 @@ def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
 
     return gan
 
+
+def validate(gan, generator, discriminator, x_validate_hr, x_validate_lr, batch_size=8):
+    batch_count = int(x_validate_hr.shape[0] / batch_size)
+
+    batch_gan_losses = [0, 0, 0]
+    batch_dis_losses = 0
+    for _ in tqdm(range(batch_count)):
+        rand_nums = np.random.randint(0, x_validate_hr.shape[0], size=batch_size)
+        image_batch_hr = x_validate_hr[rand_nums]
+        image_batch_lr = x_validate_lr[rand_nums]
+
+        generated_images_sr = generator.predict(image_batch_lr)
+        generated_images_sr = Concatenate(axis=3)([generated_images_sr, generated_images_sr, generated_images_sr])
+
+        real_data_Y = np.ones(batch_size) - np.random.random_sample(batch_size)*0.2
+        fake_data_Y = np.random.random_sample(batch_size)*0.2
+
+        d_loss_real = discriminator.evaluate(image_batch_hr, real_data_Y, verbose = 0)
+        d_loss_fake = discriminator.evaluate(generated_images_sr, fake_data_Y, verbose = 0)
+        discriminator_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
+        batch_dis_losses += discriminator_loss
+
+        rand_nums = np.random.randint(0, x_validate_hr.shape[0], size=batch_size)
+        image_batch_hr = x_validate_hr[rand_nums]
+        image_batch_lr = x_validate_lr[rand_nums]
+        gan_Y = np.ones(batch_size) - np.random.random_sample(batch_size)*0.2
+        gan_loss = gan.evaluate(image_batch_lr, [image_batch_hr,gan_Y], verbose = 0)
+        batch_gan_losses[0] += gan_loss[0]
+        batch_gan_losses[1] += gan_loss[1]
+        batch_gan_losses[2] += gan_loss[2]
+
+    gan_loss = [l/batch_count for l in batch_gan_losses]
+    discriminator_loss = batch_dis_losses / batch_count
+    return gan_loss, discriminator_loss
+
+
 # default values for all parameters are given, if want defferent values you can give via commandline
 # for more info use $python train.py -h
 def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_images, train_test_ratio):
     
-    x_train_lr, x_train_hr, x_test_lr, x_test_hr = Utils.load_training_data(input_dir, '.png', number_of_images, train_test_ratio) 
+    x_train_lr, x_train_hr, x_test_lr, x_test_hr, x_validate_hr, x_validate_lr = Utils.load_training_data(input_dir, '.png', number_of_images, train_test_ratio) 
     loss = VGG_LOSS(image_shape)
     
     batch_count = int(x_train_hr.shape[0] / batch_size)
@@ -88,14 +124,16 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
             gan_Y = np.ones(batch_size) - np.random.random_sample(batch_size)*0.2
             discriminator.trainable = False
             gan_loss = gan.train_on_batch(image_batch_lr, [image_batch_hr,gan_Y])
-            
-        
+
+
+        validate_gan_loss, validate_discriminator_loss = validate(gan, generator, discriminator, x_validate_hr, x_validate_lr)
         print("discriminator_loss : %f" % discriminator_loss)
         print("gan_loss :", gan_loss)
         gan_loss = str(gan_loss)
         
         loss_file = open(model_save_dir + 'losses.txt' , 'a')
-        loss_file.write('epoch%d : gan_loss = %s ; discriminator_loss = %f\n' %(e, gan_loss, discriminator_loss) )
+        loss_file.write('epoch%d : \ntrain_gan_loss = %s ; train_disc_loss = %f\n' %(e, gan_loss, discriminator_loss) )
+        loss_file.write('val_gan_loss = %s ; val_disc_loss = %f\n' %(validate_gan_loss, validate_discriminator_loss) )
         loss_file.close()
 
         if e == 1 or e % 40 == 0:
