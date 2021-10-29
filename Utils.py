@@ -103,9 +103,9 @@ def load_data(directory, ext):
 def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio = 0.8):
     global hr_test_filenames, lr_test_filenames;
 
-    number_of_train_images = int(number_of_images * train_test_ratio)
     hr_train, hr_test, hr_test_filenames = load_data_from_dirs(load_path(os.path.join(directory, 'A_HRSI')), ext)
     lr_train, lr_test, lr_test_filenames = load_data_from_dirs(load_path(os.path.join(directory, 'A_LRSI')), ext)
+    number_of_train_images = int(len(hr_train) * train_test_ratio)
 
     if len(hr_train) < number_of_images:
         print("Number of image files are less then you specified")
@@ -124,13 +124,19 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
     x_train_hr = normalize(hr_train)
     x_train_lr = normalize(lr_train)
 
+    x_validate_hr = x_train_hr[number_of_train_images:]
+    x_validate_lr = x_train_lr[number_of_train_images:]
+
+    x_train_hr = x_train_hr[:number_of_train_images]
+    x_train_lr = x_train_lr[:number_of_train_images]
+
     hr_test = get_hr_images(hr_test)
     lr_test = get_lr_images(lr_test, 1)
 
     x_test_hr = normalize(hr_test)
     x_test_lr = normalize(lr_test)
     
-    return x_train_lr, x_train_hr, x_test_lr, x_test_hr
+    return x_train_lr, x_train_hr, x_test_lr, x_test_hr, x_validate_hr, x_validate_lr
 
 
 def load_test_data_for_model(directory, ext, number_of_images = 100):
