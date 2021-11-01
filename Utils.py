@@ -169,7 +169,54 @@ def load_test_data(directory, ext, number_of_images = 100):
     x_test_lr = normalize(x_test_lr)
     
     return x_test_lr
-    
+ 
+# Mean squared error
+def mse(imageA, imageB):
+    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+    #print(err)
+    err /= float(imageA.shape[0] * imageA.shape[1])
+    return err
+
+
+# Mean intensity error / Mean absolute error
+def intensity_error(imageA, imageB):
+    err = np.sum(np.abs(imageA.astype("float") - imageB.astype("float")))
+    #print(err)
+    err /= float(imageA.shape[0] * imageA.shape[1])
+    return err
+
+
+# Peak signal to noise ratio
+def PSNR(compressed, original):
+    mse = np.mean((original - compressed) ** 2)
+    if(mse == 0):  # MSE is zero means no noise is present in the signal .
+                  # Therefore PSNR have no importance.
+        return 100
+    max_pixel = 255.0
+    psnr = 20 * log10(max_pixel / sqrt(mse))
+    return psnr
+
+# Structural Similarity
+from skimage import measure
+def ssim(imageA, imageB):
+    return measure.compare_ssim(imageA, imageB)
+	
+# Compare Two Images And Print Results
+def compare_two_images(imageA, imageB):
+	print("Mean Square Error: ", mse(imageA, imageB))
+	print("Mean Intensity Error: ", intensity_error(imageA, imageB))
+	print("Peak Signal To Noise Ratio: ", PSNR(imageA, imageB))
+	print("Structural Similarity: ", ssim(imageA, imageB))
+
+# Compare Three Images And Print Results
+def compare_three_images(imageA, imageB, imageC):
+	print("Compare Low Resolution to Ground Truth")
+	compare_two_images(imageA, imageC)
+	print("Compare GANs to Ground Truth")
+	compare_two_images(imageB, imageC)
+	print("Compare Low Resolution to GANs")
+	compare_two_images(imageA, imageB)
+ 
 # While training save generated image(in form LR, SR, HR)
 # Save only one image as sample  
 def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , dim=(1, 3), figsize=(15, 5)):
@@ -185,6 +232,8 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
 
     for value in range(examples):
         final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
+		print("Train")
+		compare_three_images(image_batch_lr[value], final_output, image_batch_hr[value])
 
         plt.figure(figsize=figsize)
 
@@ -218,7 +267,8 @@ def plot_test_generated_images_for_model(output_dir, generator, x_test_hr, x_tes
     image_batch_lr = denormalize(image_batch_lr)
     
     for index in range(examples):
-    
+		print("Test")
+		compare_three_images(image_batch_lr[index], generated_image[index], image_batch_hr[index])
         plt.figure(figsize=figsize)
     
         plt.subplot(dim[0], dim[1], 1)
