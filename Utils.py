@@ -200,22 +200,6 @@ def PSNR(compressed, original):
 from skimage import measure
 def ssim(imageA, imageB):
     return measure.compare_ssim(imageA, imageB)
-	
-# Compare Two Images And Print Results
-def compare_two_images(imageA, imageB):
-	print("Mean Square Error: ", mse(imageA, imageB))
-	print("Mean Intensity Error: ", intensity_error(imageA, imageB))
-	print("Peak Signal To Noise Ratio: ", PSNR(imageA, imageB))
-	print("Structural Similarity: ", ssim(imageA, imageB))
-
-# Compare Three Images And Print Results
-def compare_three_images(imageA, imageB, imageC):
-	print("Compare Low Resolution to Ground Truth")
-	compare_two_images(imageA, imageC)
-	print("Compare GANs to Ground Truth")
-	compare_two_images(imageB, imageC)
-	print("Compare Low Resolution to GANs")
-	compare_two_images(imageA, imageB)
  
 # While training save generated image(in form LR, SR, HR)
 # Save only one image as sample  
@@ -229,10 +213,18 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
     gen_img = generator.predict(image_batch_lr)
     generated_image = denormalize(gen_img)
     image_batch_lr = denormalize(image_batch_lr)
+	
+	mse_average = 0
+	mie_average = 0
+	psnr_average = 0
+	ssim_average = 0
 
     for value in range(examples):
         final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
-		print("Train")
+		mse_average += mse(final_output, image_batch_hr[value])
+		mie_average += intensity_error(final_output, image_batch_hr[value])
+		psnr_average += PSNR(final_output, image_batch_hr[value])
+		ssim_average += ssim(final_output, image_batch_hr[value])
 		compare_three_images(image_batch_lr[value], final_output, image_batch_hr[value])
 
         plt.figure(figsize=figsize)
@@ -254,7 +246,20 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
         plt.clf()
         plt.close()
 
-    
+    mse_average /= len(range(examples))
+	mie_average /= len(range(examples))
+	psnr_average /= len(range(examples))
+	ssim_average /= len(range(examples))
+	
+	f = open("image_comparison_output.txt", "a")
+	f.write("---")
+	f.write("Mean Square Error: ", mse_average)
+	f.write("Mean Intensity Error: ", mie_average)
+	f.write("Peak Signal To Noise Ratio: ", psnr_average)
+	f.write("Structural Similarity: ", ssim_average)
+	f.write("---")
+	f.close()
+	
 # Plots and save generated images(in form LR, SR, HR) from model to test the model 
 # Save output for all images given for testing  
 def plot_test_generated_images_for_model(output_dir, generator, x_test_hr, x_test_lr , dim=(1, 3), figsize=(15, 5)):
@@ -267,8 +272,6 @@ def plot_test_generated_images_for_model(output_dir, generator, x_test_hr, x_tes
     image_batch_lr = denormalize(image_batch_lr)
     
     for index in range(examples):
-		print("Test")
-		compare_three_images(image_batch_lr[index], generated_image[index], image_batch_hr[index])
         plt.figure(figsize=figsize)
     
         plt.subplot(dim[0], dim[1], 1)
