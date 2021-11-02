@@ -8,7 +8,6 @@
 
 from keras.layers import Lambda, Concatenate
 import tensorflow as tf
-#from skimage import data, io, filters
 import imageio
 import numpy as np
 from numpy import array
@@ -17,6 +16,8 @@ import os
 import sys
 import cv2
 import json
+import math
+#from ssimpy import ssim
 
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
@@ -127,8 +128,10 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
     x_validate_hr = x_train_hr[number_of_train_images:]
     x_validate_lr = x_train_lr[number_of_train_images:]
 
+#    x_train_hr = x_train_hr[:50]
     x_train_hr = x_train_hr[:number_of_train_images]
     x_train_lr = x_train_lr[:number_of_train_images]
+#    x_train_lr = x_train_lr[:50]
 
     hr_test = get_hr_images(hr_test)
     lr_test = get_lr_images(lr_test, 1)
@@ -173,7 +176,6 @@ def load_test_data(directory, ext, number_of_images = 100):
 # Mean squared error
 def mse(imageA, imageB):
     err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
-    #print(err)
     err /= float(imageA.shape[0] * imageA.shape[1])
     return err
 
@@ -181,7 +183,6 @@ def mse(imageA, imageB):
 # Mean intensity error / Mean absolute error
 def intensity_error(imageA, imageB):
     err = np.sum(np.abs(imageA.astype("float") - imageB.astype("float")))
-    #print(err)
     err /= float(imageA.shape[0] * imageA.shape[1])
     return err
 
@@ -193,13 +194,14 @@ def PSNR(compressed, original):
                   # Therefore PSNR have no importance.
         return 100
     max_pixel = 255.0
-    psnr = 20 * log10(max_pixel / sqrt(mse))
+    psnr = 20 * math.log10(max_pixel / math.sqrt(mse))
     return psnr
 
 # Structural Similarity
-from skimage import measure
-def ssim(imageA, imageB):
-    return measure.compare_ssim(imageA, imageB)
+#from skimage.metrics import structural_similarity as ssim
+#def ssim(imageA, imageB):
+#    return measure.compare_ssim(imageA, imageB)
+#    return ssim(imageA, imageB)
  
 # While training save generated image(in form LR, SR, HR)
 # Save only one image as sample  
@@ -213,19 +215,17 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
     gen_img = generator.predict(image_batch_lr)
     generated_image = denormalize(gen_img)
     image_batch_lr = denormalize(image_batch_lr)
-	
-	mse_average = 0
-	mie_average = 0
-	psnr_average = 0
-	ssim_average = 0
+    mse_average = 0
+    mie_average = 0
+    psnr_average = 0
+    ssim_average = 0
 
     for value in range(examples):
         final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
-		mse_average += mse(final_output, image_batch_hr[value])
-		mie_average += intensity_error(final_output, image_batch_hr[value])
-		psnr_average += PSNR(final_output, image_batch_hr[value])
-		ssim_average += ssim(final_output, image_batch_hr[value])
-		compare_three_images(image_batch_lr[value], final_output, image_batch_hr[value])
+        mse_average += mse(final_output.numpy(), image_batch_hr[value])
+        mie_average += intensity_error(final_output.numpy(), image_batch_hr[value])
+        psnr_average += PSNR(final_output.numpy(), image_batch_hr[value])
+#        ssim_average += ssim(final_output.numpy(), image_batch_hr[value])
 
         plt.figure(figsize=figsize)
 
@@ -240,25 +240,26 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
         plt.subplot(dim[0], dim[1], 3)
         plt.imshow(image_batch_hr[value], interpolation='nearest')
         plt.axis('off')
-    
+
         plt.tight_layout()
         plt.savefig(output_dir + '{}_{}.png'.format(hr_test_filenames[value][:-4], epoch))
         plt.clf()
         plt.close()
 
     mse_average /= len(range(examples))
-	mie_average /= len(range(examples))
-	psnr_average /= len(range(examples))
-	ssim_average /= len(range(examples))
-	
-	f = open("image_comparison_output.txt", "a")
-	f.write("---")
-	f.write("Mean Square Error: ", mse_average)
-	f.write("Mean Intensity Error: ", mie_average)
-	f.write("Peak Signal To Noise Ratio: ", psnr_average)
-	f.write("Structural Similarity: ", ssim_average)
-	f.write("---")
-	f.close()
+    mie_average /= len(range(examples))
+    psnr_average /= len(range(examples))
+    ssim_average /= len(range(examples))
+
+    f = open("output/image_comparison_output.txt", "a")
+    f.write("-------\n")
+    f.write("Epoch {}\n".format(epoch))
+    f.write("Mean Square Error: {}\n".format(mse_average))
+    f.write("Mean Intensity Error: {}\n".format(mie_average))
+    f.write("Peak Signal To Noise Ratio: {}\n".format(psnr_average))
+    f.write("Structural Similarity: {}\n".format(ssim_average))
+    f.write("-------\n")
+    f.close()
 	
 # Plots and save generated images(in form LR, SR, HR) from model to test the model 
 # Save output for all images given for testing  
