@@ -128,10 +128,10 @@ def load_training_data(directory, ext, number_of_images = 1000, train_test_ratio
     x_validate_hr = x_train_hr[number_of_train_images:]
     x_validate_lr = x_train_lr[number_of_train_images:]
 
-#    x_train_hr = x_train_hr[:50]
     x_train_hr = x_train_hr[:number_of_train_images]
+    #x_train_hr = x_train_hr[:4]
     x_train_lr = x_train_lr[:number_of_train_images]
-#    x_train_lr = x_train_lr[:50]
+    #x_train_lr = x_train_lr[:4]
 
     hr_test = get_hr_images(hr_test)
     lr_test = get_lr_images(lr_test, 1)
@@ -198,10 +198,9 @@ def PSNR(compressed, original):
     return psnr
 
 # Structural Similarity
-#from skimage.metrics import structural_similarity as ssim
-#def ssim(imageA, imageB):
-#    return measure.compare_ssim(imageA, imageB)
-#    return ssim(imageA, imageB)
+from skimage import measure
+def ssim(imageA, imageB):
+    return measure.compare_ssim(imageA, imageB, multichannel=True)
  
 # While training save generated image(in form LR, SR, HR)
 # Save only one image as sample  
@@ -222,10 +221,13 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
 
     for value in range(examples):
         final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
-        mse_average += mse(final_output.numpy(), image_batch_hr[value])
-        mie_average += intensity_error(final_output.numpy(), image_batch_hr[value])
-        psnr_average += PSNR(final_output.numpy(), image_batch_hr[value])
-#        ssim_average += ssim(final_output.numpy(), image_batch_hr[value])
+        gt = image_batch_hr[value][:, :, 0]
+        gt = np.resize(gt, (gt.shape[0], gt.shape[1], 1))
+        
+        mse_average += mse(generated_image[value], gt)
+        mie_average += intensity_error(generated_image[value], gt)
+        psnr_average += PSNR(generated_image[value], gt)
+        ssim_average += ssim(generated_image[value], gt)
 
         plt.figure(figsize=figsize)
 
