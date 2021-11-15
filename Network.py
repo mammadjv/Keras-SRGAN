@@ -7,7 +7,7 @@
 #python_version  :3.5.4 
 
 # Modules
-from keras.layers import Dense
+from keras.layers import Dense, MaxPooling2D, Dropout, concatenate
 from keras.layers.core import Activation
 from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import UpSampling2D
@@ -77,12 +77,6 @@ class Generator(object):
         model = BatchNormalization(momentum = 0.5)(model)
         model = add([gen_model, model])
 	    
-	# Using 2 UpSampling Block
-#        for index in range(8):
-#            print('@@@@@@@@@@')
-#            model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=2, upsampling_size_y=2)
-
-       # model = up_sampling_block(model, 3, 256, 1, upsampling_size_x=4, upsampling_size_y=3)
 
         model = Conv2D(filters = 1, kernel_size = 9, strides = 1, padding = "same")(model)
         model = Activation('tanh')(model)
