@@ -85,8 +85,8 @@ def load_data_from_dirs(dirs, ext):
         for f in os.listdir(d):
             if f.endswith(ext):
                 path = os.path.join(d,f)
-                image = cv2.imread(path)
-                if len(image.shape) > 2:
+                image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+                if len(image.shape) > 1:
                     if f in split['train']:
                         train_images.append(image)
 
@@ -221,9 +221,15 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
 
     for value in range(examples):
         final_output = Concatenate(axis=2)([generated_image[value], generated_image[value], generated_image[value]])
-        gt = image_batch_hr[value][:, :, 0]
+
+        gt = image_batch_hr[value]
         gt = np.resize(gt, (gt.shape[0], gt.shape[1], 1))
-        
+#        gt = Concatenate(axis=2)([gt, gt, gt])
+
+        lr_image = image_batch_lr[value]
+        lr_image = np.resize(lr_image, (lr_image.shape[0], lr_image.shape[1], 1))
+        lr_image = Concatenate(axis=2)([lr_image, lr_image, lr_image])
+
         mse_average += mse(generated_image[value], gt)
         mie_average += intensity_error(generated_image[value], gt)
         psnr_average += PSNR(generated_image[value], gt)
@@ -232,15 +238,17 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
         plt.figure(figsize=figsize)
 
         plt.subplot(dim[0], dim[1], 1)
-        plt.imshow(image_batch_lr[value], interpolation='nearest')
+        plt.imshow(lr_image, interpolation='nearest')
         plt.axis('off')
 
         plt.subplot(dim[0], dim[1], 2)
         plt.imshow(final_output, interpolation='nearest')
         plt.axis('off')
 
+        gt = np.resize(gt, (gt.shape[0], gt.shape[1], 1))
+        gt = Concatenate(axis=2)([gt, gt, gt])
         plt.subplot(dim[0], dim[1], 3)
-        plt.imshow(image_batch_hr[value], interpolation='nearest')
+        plt.imshow(gt, interpolation='nearest')
         plt.axis('off')
 
         plt.tight_layout()
@@ -253,7 +261,7 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
     psnr_average /= len(range(examples))
     ssim_average /= len(range(examples))
 
-    f = open("output/image_comparison_output.txt", "a")
+    f = open("output4/image_comparison_output.txt", "a")
     f.write("-------\n")
     f.write("Epoch {}\n".format(epoch))
     f.write("Mean Square Error: {}\n".format(mse_average))

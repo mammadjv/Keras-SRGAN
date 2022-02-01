@@ -14,16 +14,14 @@ import keras
 from keras.layers import Concatenate
 
 
-class VGG_LOSS(object):
+class MSE_LOSS(object):
 
     def __init__(self, image_shape):
-        
         self.image_shape = image_shape
 
     # computes MSE loss
-    def MSE_loss(self, y_true, y_pred):
-        generated_images_sr = Concatenate(axis=3)([y_pred, y_pred, y_pred])
-        return K.mean(K.square(y_true - generated_images_sr))
+    def compute_loss(self, y_true, y_pred):
+        return K.mean(K.square(y_true - y_pred))
     
 def get_optimizer():
     adam = Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
