@@ -11,35 +11,27 @@ import keras.backend as K
 from keras.models import Model
 from keras.optimizers import Adam
 import keras
+from keras.layers import Concatenate
 
-class VGG_LOSS(object):
+
+class MSE_LOSS(object):
 
     def __init__(self, image_shape):
-        
         self.image_shape = image_shape
 
-    # computes VGG loss or content loss
-    def vgg_loss(self, y_true, y_pred):
-        vgg19 = VGG19(include_top=False, weights='imagenet', input_shape=self.image_shape)
-        vgg19.trainable = False
-        # Make trainable as False
-        for l in vgg19.layers:
-            l.trainable = False
-
-        model = Model(inputs=vgg19.input, outputs=vgg19.get_layer('block5_conv4').output)
-        model.trainable = False
-    
-        return K.mean(K.square(model(y_true) - model(y_pred)))
+    # computes MSE loss
+    def compute_loss(self, y_true, y_pred):
+        return K.mean(K.square(y_true - y_pred))
     
 def get_optimizer():
     adam = Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+#        adam = Adam(lr=1E-4)
     #lr_schedule = keras.optimizers.schedules.ExponentialDecay(
     #    initial_learning_rate=1e-2,
     #    decay_steps=10000,
     #    decay_rate=0.9,
     #)
-
-    #adam = keras.optimizers.SGD(learning_rate=lr_schedule)
+#    adam = keras.optimizers.SGD(learning_rate=0.01)
     return adam
 
 

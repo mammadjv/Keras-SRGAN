@@ -7,7 +7,7 @@
 #python_version  :3.5.4 
 
 # Modules
-from keras.layers import Dense
+from keras.layers import Dense, MaxPooling2D, Dropout, concatenate
 from keras.layers.core import Activation
 from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import UpSampling2D
