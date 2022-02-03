@@ -85,27 +85,40 @@ def train(epochs, batch_size, input_dir, output_dir, model_save_dir, number_of_i
     batch_count = int(x_train_hr.shape[0] / batch_size)
     shape = (image_shape[0]//downscale_factor, image_shape[1]//downscale_factor, 1)
     generator = Generator(shape).generator()
+    discriminator = Discriminator(image_shape).discriminator()
 
     optimizer = Utils_model.get_optimizer()
     generator.compile(loss=loss.compute_loss, optimizer=optimizer, run_eagerly=True)
+    discriminator.compile(loss="binary_crossentropy", optimizer=optimizer, run_eagerly=True)
 
+    gan = get_gan_network(discriminator, shape, generator, optimizer, loss.compute_loss)
     loss_file = open(model_save_dir + 'losses.txt' , 'w+')
     loss_file.close()
-    
-    gan_loss = 0
+
     for e in range(1, epochs+1):
         print ('-'*15, 'Epoch %d' % e, '-'*15)
         for _ in tqdm(range(batch_count)):
             rand_nums = np.random.randint(0, x_train_hr.shape[0], size=batch_size)
             image_batch_hr = x_train_hr[rand_nums]
             image_batch_lr = x_train_lr[rand_nums]
-            generator_loss = generator.train_on_batch(image_batch_lr, image_batch_hr)
+            generated_images_sr = generator.predict(image_batch_lr)
 
-        print("gan_loss :", generator_loss)
+            real_data_Y = np.ones(batch_size) - np.random.random_sample(batch_size)*0.2
+            fake_data_Y = np.random.random_sample(batch_size)*0.2
 
-        loss_file = open(model_save_dir + 'losses.txt' , 'a')
-        loss_file.write('epoch%d : \ntrain_gan_loss = {}\n' .format(e, generator_loss))
-        loss_file.close()
+            discriminator.trainable = True
+
+            d_loss_real = discriminator.train_on_batch(image_batch_hr, real_data_Y)
+            d_loss_fake = discriminator.train_on_batch(generated_images_sr, fake_data_Y)
+            discriminator_loss = 0.5 * np.add(d_loss_fake, d_loss_real)
+
+            rand_nums = np.random.randint(0, x_train_hr.shape[0], size=batch_size)
+            image_batch_hr = x_train_hr[rand_nums]
+            image_batch_lr = x_train_lr[rand_nums]
+
+            gan_Y = np.ones(batch_size) - np.random.random_sample(batch_size)*0.2
+            discriminator.trainable = False
+            gan_loss = gan.train_on_batch(image_batch_lr, [image_batch_hr,gan_Y])
 
         if e == 1 or e % 5 == 0:
             Utils.plot_generated_images(output_dir, e, generator, x_test_hr, x_test_lr)
