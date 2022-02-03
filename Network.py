@@ -65,7 +65,7 @@ class Generator(object):
 
     def generator(self):
         gen_input = Input(shape = self.noise_shape)
-        conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(gan_input)
+        conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(gen_input)
         conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
         pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
         conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
@@ -102,7 +102,7 @@ class Generator(object):
         conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
         conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
         conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-        conv10 = Conv2D(1, 1, activation = 'sigmoid')(conv9)
+        conv10 = Conv2D(1, 1, activation = 'tanh')(conv9)
 
         generator_model = Model(inputs = gen_input, outputs = conv10)
         print(generator_model.summary())
