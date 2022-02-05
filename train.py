@@ -134,10 +134,10 @@ if __name__== "__main__":
     parser.add_argument('-i', '--input_dir', action='store', dest='input_dir', default='./data_synthetic/' ,
                     help='Path for input images')
                     
-    parser.add_argument('-o', '--output_dir', action='store', dest='output_dir', default='./output4/' ,
+    parser.add_argument('-o', '--output_dir', action='store', dest='output_dir', default='./output7/' ,
                     help='Path for Output images')
     
-    parser.add_argument('-m', '--model_save_dir', action='store', dest='model_save_dir', default='./model4/' ,
+    parser.add_argument('-m', '--model_save_dir', action='store', dest='model_save_dir', default='./model7/' ,
                     help='Path for model')
 
     parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=8,
