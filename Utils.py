@@ -261,7 +261,7 @@ def plot_generated_images(output_dir, epoch, generator, x_test_hr, x_test_lr , d
     psnr_average /= len(range(examples))
     ssim_average /= len(range(examples))
 
-    f = open("output4/image_comparison_output.txt", "a")
+    f = open("output/image_comparison_output.txt", "a")
     f.write("-------\n")
     f.write("Epoch {}\n".format(epoch))
     f.write("Mean Square Error: {}\n".format(mse_average))

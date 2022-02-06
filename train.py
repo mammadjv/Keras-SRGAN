@@ -27,14 +27,14 @@ downscale_factor = 1
 image_shape = (208, 176, 1)
 
 # Combined network
-def get_gan_network(discriminator, shape, generator, optimizer, vgg_loss):
+def get_gan_network(discriminator, shape, generator, optimizer, loss_function):
     discriminator.trainable = False
     gan_input = Input(shape=shape)
     x = generator(gan_input)
 
     gan_output = discriminator(x)
     gan = Model(inputs=gan_input, outputs=[x,gan_output])
-    gan.compile(loss=[MSE_LOSS, "binary_crossentropy"],
+    gan.compile(loss=[loss_function, "binary_crossentropy"],
                 loss_weights=[1., 1e-3],
                 optimizer=optimizer, run_eagerly=True)
 
@@ -134,10 +134,10 @@ if __name__== "__main__":
     parser.add_argument('-i', '--input_dir', action='store', dest='input_dir', default='./data_synthetic/' ,
                     help='Path for input images')
                     
-    parser.add_argument('-o', '--output_dir', action='store', dest='output_dir', default='./output7/' ,
+    parser.add_argument('-o', '--output_dir', action='store', dest='output_dir', default='./output/' ,
                     help='Path for Output images')
     
-    parser.add_argument('-m', '--model_save_dir', action='store', dest='model_save_dir', default='./model7/' ,
+    parser.add_argument('-m', '--model_save_dir', action='store', dest='model_save_dir', default='./model/' ,
                     help='Path for model')
 
     parser.add_argument('-b', '--batch_size', action='store', dest='batch_size', default=8,
